@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>My Chat App</title>
+     <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/brython/3.7.5/brython.min.js">
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Acme&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css" integrity="sha384-Vkoo8x4CGsO3+Hhxv8T/Q5PaXtkKtu6ug5TOeNV6gBiFeWPGFN9MuhOf23Q9Ifjh" crossorigin="anonymous">
+    <style>
+        body{
+            font-family: 'Acme',sans-serif;
+            background:url("{{url_for('static',filename='css/fern.jpg')}}");
+            background-size:cover;
+            background-repeat: no-repeat;
+        }
+    .cb 	{
+	position:absolute;
+	top:19%;
+	left:17%;
+	transform: translate(20%, 0%); 
+	width:450px;
+	height:450px;
+	padding:80px 40px;
+	box-sizing: border-box;
+	background:rgba(190,189,184,0.3);
+    color: black;
+    overflow: auto;
+    }
+    
+    .ib{
+        position:absolute;
+	top:19%;
+	right:18%;
+	 transform: translate(20%, 0%); 
+	width:450px;
+	height:450px;
+    padding:80px 40px;
+    padding-left: 5px;
+	box-sizing: border-box;
+    background:rgba(190,189,184,0.4);
+    color: black;
+    overflow: auto;
+    }
+
+            .scroll {
+            height: 450px;
+            overflow: scroll;  
+          }  
+
+
+          #edit{
+            background: rgb(248, 147, 188);
+            border-color: rgb(248, 147, 188);
+            color: black;
+          }
+         
+          .btn-info{
+                border-radius: 20px;
+                margin: 2px;
+          }
+
+          .btn-primary{
+            margin: 2px;
+          }
+
+          #message_input_form{
+              position: absolute;
+              position: -webkit-sticky;
+              bottom: 30%;
+              left:8%;
+              display: inline-block1
+          }
+          #snd{
+              transform: translate(125px,0);
+              margin: 5px;
+          }
+          .card{
+              position: absolute;
+              top: 20%;
+              left:1%;
+              background-color: rgba(0, 0, 0, 0.5);
+              color: white;
+          }
+          .alert-primary{
+               box-shadow: 5px 5px 7px rgba(0, 0, 0, 0.5);
+          }
+          .ibc_image{
+            position: absolute;
+            right:10%;
+          }
+          .icb_btn{
+            position: absolute;
+            right:10%;
+            bottom:20%;
+          }
+          #h{
+              position: absolute;
+              top: 25px;
+              left: 50%;
+              transform: translate(-54%,0%);
+              color: white;
+              text-shadow:3px 3px 5px rgba(0, 0, 0, 0.5);
+          }
+    </style>
+
+    <script>
+var messageBody = document.querySelector('#messageBody');
+messageBody.scrollTop = messageBody.scrollHeight - messageBody.clientHeight;
+    </script>
+
+    
+
+</head>
+<body>
+
+  
+          <h1 class="display-4 " id="h">Welcome to chat room: {{ room.name }}</h1>
+     
+      <!-- <h1 class="alert alert-primary">Welcome to chat room: {{ room.name }}</h1> -->
+      <div  class="container">
+<div class="cb scroll" id='messageBody'>
+    <nav class="navbar navbar-expand-lg navbar-light bg-dark fixed-top">
+        <label style="color: white;">Chat area</label>   
+     </nav>
+<button type="button" id="load_older_messages_btn" class="btn btn-primary">Load Older Messages</button>
+<div id="messages">
+    {% for message in messages %}
+        <div class="btn btn-info" ><b>{{ message.sender }}&nbsp;[{{ message.created_at }}]:&nbsp;</b> {{ message.text }}</div>
+    {% endfor %}
+</div>
+</div>
+<form id="message_input_form">
+    <input type="text" id="message_input"  class="form-control" placeholder="Enter your message here">
+    <button type="submit" id="snd"  class="btn btn-success" id="snd">Send</button>
+    <br>
+</form>
+
+<br>
+<br>
+
+
+<!-- style="display:block;position:relative; left: 70%;bottom:200px;" -->
+<div class="ib">
+    <nav class="navbar navbar-expand-lg navbar-light bg-dark fixed-top">
+        <label style="color: white;">image area</label>   
+     </nav>
+<div id="Canvas" class="ibc_image">
+<img src="{{url_for('static',filename='temp.jpg')}}" alt="Nothing to display" width="200px" height="80px">
+</div>
+<form action="/save" target="_blank">
+<button type="submit" class="btn btn-success icb_btn">Upload/Remove</button>
+</form>
+
+
+
+
+</div>
+
+<div class="card" style="width: 18rem;">
+    <div class="card-body">
+      <h5 class="card-title">Members</h5>
+      <ul>
+        {% for member in room_members %}
+            <li>{{ member._id.username }}</li>
+        {% endfor %}
+    </ul>
+      <button type="submit"   id="edit_btn" class="btn btn-primary" >Edit-Room</button>
+    </div>
+  </div>
+
+</div>
+</body>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.3.0/socket.io.js"></script>
+
+<script>
+    const socket = io.connect("http://127.0.0.1:5000");
+
+    socket.on('connect', function () {
+        socket.emit('join_room', {
+            username: "{{ username }}",
+            room: "{{ room._id }}"
+        });
+
+        let message_input = document.getElementById('message_input');
+        document.getElementById('message_input_form').onsubmit = function (e) {
+            e.preventDefault();
+            let message = message_input.value.trim();
+            if (message.length) {
+                socket.emit('send_message', {
+                    username: "{{ username }}",
+                    room: "{{ room._id }}",
+                    message: message
+                })
+            }
+            message_input.value = '';
+            message_input.focus();
+        }
+    });
+
+
+
+
+    let page = 0;
+
+    document.getElementById("load_older_messages_btn").onclick = (e) => {
+        page += 1;
+        fetch("/rooms/{{ room._id }}/messages?page=" + page, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        }).then(response => {
+            response.json().then(messages => {
+                messages.reverse().forEach(message => prepend_message(message.text, message.sender, message.created_at));
+            })
+        })
+    };
+
+    function prepend_message(message, username, created_at) {
+        const newNode = document.createElement('div');
+        newNode.className="btn btn-info";
+        newNode.innerHTML = `<b>${username}&nbsp;[${created_at}]:&nbsp;</b> ${message}`;
+        const messages_div = document.getElementById('messages');
+        messages_div.insertBefore(newNode, messages_div.firstChild);
+    }
+
+    window.onbeforeunload = function () {
+        socket.emit('leave_room', {
+            username: "{{ username }}",
+            room: "{{ room._id }}"
+        })
+    };
+
+    socket.on('receive_message', function (data) {
+        console.log(data);
+        const newNode = document.createElement('div');
+        newNode.className="btn btn-info";
+        newNode.innerHTML = `<b>${data.username}&nbsp;[${data.created_at}]:&nbsp;</b> ${data.message}`;
+        document.getElementById('messages').appendChild(newNode);
+    });
+
+    socket.on('receive_image', function (info) {
+        console.log(info);
+        if (info.image){
+            const ctx = document.createElement('Canvas');
+            const newNode = document.createElement('nodedisp');
+            var img = new Image();
+            img.src = 'data:image;base64,' + info.buffer;
+            ctx.drawImage(img, 0, 0);
+            newNode.innerHTML = `<b>${data.username}&nbsp;[${data.created_at}]`;
+        }
+
+    });
+
+
+
+    socket.on('join_room_announcement', function (data) {
+        console.log(data);
+        if (data.username !== "{{ username }}") {
+            const newNode = document.createElement('div');
+            newNode.innerHTML = `<b>${data.username}</b> has joined the room`;
+            document.getElementById('messages').appendChild(newNode);
+        }
+    });
+
+    socket.on('leave_room_announcement', function (data) {
+        console.log(data);
+        const newNode = document.createElement('div');
+        newNode.innerHTML = `<b>${data.username}</b> has left the room`;
+        document.getElementById('messages').appendChild(newNode);
+    });
+
+
+    (function () {
+        document.getElementById("edit_btn").addEventListener('click', makeRequest);
+        function makeRequest() {
+            var httpRequest = new XMLHttpRequest();
+            if (!httpRequest) {
+                alert(' Cannot create an XMLHTTP instance');
+                return false;
+            }
+            httpRequest.onreadystatechange = function () {
+                if (httpRequest.readyState === XMLHttpRequest.DONE) {
+                    if (httpRequest.status === 200) {
+                        window.open('/rooms/{{ room._id }}/edit');
+                    } else {
+                        alert('There was a problem with the request.');
+                    }
+                }
+            };
+            httpRequest.open('GET', '/rooms/{{ room._id }}/edit');
+            httpRequest.send();
+
+        }
+    })();
+</script>
+</html>
